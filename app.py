@@ -1,3 +1,118 @@
 import streamlit as st
-st.title("hello")
-st.write("아빠도 이제 한계다. 그냥 나가 살아라 유전자 탓 사회탓 환경 탓하지 마라. 아빠도 엄마도 충분히 기다려줬다. 니 엄마나 나나 어려운 환경에서 컸고 먹고살기만 해도 바쁘고 힘든 시절이라 부모의 사랑을 많이 못 받고 자랐다 그래서 결혼할때 우리 자식만은 행복하게 키우자고 약속했다. 너에게 언제나 최고는 아니더라도 최선을 다해주고 싶었다. 내가 먹고 입을거 참으며 네 옷, 먹는거, 교육 모두 좋은 조건을 누리게 해주고 싶었다 네가 방황하거나 철없이 굴때도 앞에선 혼냈지만 뒤 에서는 우리가 못해줘서 그런가보다 하며 네 엄마랑 많이 울었다 그래도 자식은 나보다 나은 삶을 살겠지 나보단 선택의 자유를 누릴 수 있겠지.이 생각만 하며 꼭 참으며 세월을 보냈다 그런데 이게 뭐냐? 너 나이가 몇인지알긴하냐? 도대체 그 나이에 혼자서 할 줄 아는게 뭐냐? 늘 불만은 많으면서 실천하는게 뭐난 말이다.오늘 문득 우리가 닐잘못 키웠다는 생각이 든다. 거울을 보니 늙은 내 모습에 눈물이 나더라. 그냥. 이제 나가라. 나를 원망하지도 말고 니 힘으로 알아서 살아라. 아빠도 지쳤다 당장 짐싸라.")
+from datetime import datetime
+
+st.set_page_config(
+    page_title="연애 코칭 앱",
+    page_icon="💌",
+    layout="centered"
+)
+
+# 스타일
+st.markdown(
+    """
+    <style>
+    .main {
+        background-color: #fff5f7;
+    }
+    .title {
+        text-align: center;
+        color: #ff4b6e;
+        font-size: 42px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .subtitle {
+        text-align: center;
+        color: #666;
+        font-size: 18px;
+        margin-bottom: 30px;
+    }
+    .tip-box {
+        background-color: white;
+        padding: 20px;
+        border-radius: 15px;
+        border-left: 5px solid #ff4b6e;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# 제목
+st.markdown('<div class="title">💌 AI 연애 코칭 앱</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="subtitle">상황에 맞는 연애 조언과 대화 추천을 받아보세요!</div>',
+    unsafe_allow_html=True
+)
+
+# 사이드바
+st.sidebar.header("⚙️ 사용자 정보")
+name = st.sidebar.text_input("이름", "사용자")
+age = st.sidebar.slider("나이", 18, 50, 25)
+relationship = st.sidebar.selectbox(
+    "현재 상태",
+    ["썸", "연애 중", "짝사랑", "이별 후", "소개팅 준비"]
+)
+
+# 메인 기능
+st.header("📍 현재 상황 입력")
+user_input = st.text_area(
+    "연애 고민이나 상황을 자세히 적어주세요",
+    placeholder="예: 좋아하는 사람이 있는데 먼저 연락해도 될지 고민이에요...",
+    height=180
+)
+
+# 감정 선택
+emotion = st.selectbox(
+    "현재 감정",
+    ["설렘", "불안", "긴장", "행복", "우울", "혼란스러움"]
+)
+
+# 연애 조언 함수
+def generate_coaching(text, relation, feeling):
+    text = text.lower()
+
+    if "연락" in text:
+        return "상대에게 부담되지 않게 가볍고 자연스럽게 연락해보세요. 짧은 안부나 공통 관심사로 시작하는 것이 좋아요. 😊"
+
+    elif "고백" in text:
+        return "고백은 타이밍이 중요합니다. 상대와 충분한 교감이 쌓였다면 솔직한 마음을 전해보세요."
+
+    elif "이별" in text or relation == "이별 후":
+        return "지금은 감정을 억누르기보다 충분히 정리하는 시간이 필요합니다. 스스로를 돌보는 것이 가장 중요해요. 💙"
+
+    elif relation == "썸":
+        return "썸 단계에서는 상대를 알아가는 과정이 중요합니다. 너무 조급해하지 말고 편안한 분위기를 만들어보세요."
+
+    elif relation == "소개팅 준비":
+        return "소개팅에서는 자연스러운 미소와 경청이 가장 큰 매력입니다. 상대의 이야기에 공감해보세요."
+
+    else:
+        return "연애에서는 솔직한 대화와 상대에 대한 배려가 가장 중요합니다. 자신의 감정도 소중히 생각하세요. ✨"
+
+# 추천 멘트 함수
+def recommend_message(relation):
+    messages = {
+        "썸": "오늘 뭐 했어? 갑자기 네 생각나서 연락해봤어 😊",
+        "연애 중": "오늘도 고생했어 ❤️ 맛있는 거 먹고 푹 쉬어!",
+        "짝사랑": "너랑 이야기하면 시간 가는 줄 모르겠어 😄",
+        "이별 후": "지금은 나 자신을 더 아껴주고 성장하는 시간이야.",
+        "소개팅 준비": "오늘 만나서 즐거웠어요! 다음에 또 이야기하고 싶네요 😊"
+    }
+    return messages.get(relation, "좋은 하루 보내 😊")
+
+# 버튼
+if st.button("💡 연애 코칭 받기"):
+    if user_input.strip() == "":
+        st.warning("연애 고민을 입력해주세요!")
+    else:
+        advice = generate_coaching(user_input, relationship, emotion)
+        message = recommend_message(relationship)
+
+        st.success(f"{name}님을 위한 연애 코칭 결과입니다!")
+
+        st.markdown("### ❤️ AI 연애 조언")
+        st.markdown(f'<div class="tip-box">{advice}</div>', unsafe_allow_html=True)
+
+        st.markdown("### 💬 추천 대화 멘트")
