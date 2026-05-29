@@ -1,121 +1,219 @@
-import streamlit as st
-import pandas as pd
-from datetime import datetime
+import pygame
+import random
+import math
 
-st.set_page_config(
-    page_title="오성고 매점 재고 관리",
-    page_icon="🏪",
-    layout="wide"
-)
+pygame.init()
 
-# 초기 데이터
-if 'inventory' not in st.session_state:
-    st.session_state.inventory = pd.DataFrame([
-        ["삼각김밥", 1200, 15],
-        ["컵라면", 1800, 10],
-        ["콜라", 2000, 20],
-        ["초코우유", 1500, 8],
-        ["과자", 1700, 12]
-    ], columns=["상품명", "가격", "재고"])
+# 화면 설정
+WIDTH, HEIGHT = 1000, 700
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("🚀 SPACE SURVIVAL")
 
-# 제목
-st.title("🏪 오성고 매점 재고 관리 앱")
-st.markdown("학생회/매점용 실시간 재고 관리 시스템")
+clock = pygame.time.Clock()
+FPS = 60
 
-# 사이드바
-st.sidebar.header("📋 메뉴")
-menu = st.sidebar.radio(
-    "기능 선택",
-    ["재고 현황", "상품 추가", "판매 처리", "재고 수정", "통계"]
-)
+# 색상
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 70, 70)
+BLUE = (80, 170, 255)
+YELLOW = (255, 220, 0)
+GREEN = (0, 255, 120)
+PURPLE = (180, 0, 255)
 
-inventory = st.session_state.inventory
+# 폰트
+font = pygame.font.SysFont("arial", 32)
+big_font = pygame.font.SysFont("arial", 64)
+small_font = pygame.font.SysFont("arial", 22)
 
-# 재고 현황
-if menu == "재고 현황":
-    st.subheader("📦 현재 재고 현황")
+# 플레이어
+player_size = 50
+player_x = WIDTH // 2
+player_y = HEIGHT - 100
+player_speed = 7
+player_hp = 100
 
-    total_items = inventory["재고"].sum()
-    total_products = len(inventory)
-    low_stock = len(inventory[inventory["재고"] <= 5])
+# 총알
+bullets = []
+bullet_speed = 10
 
-    col1, col2, col3 = st.columns(3)
+# 적
+enemies = []
+enemy_speed = 3
+spawn_timer = 0
 
-    col1.metric("총 상품 종류", total_products)
-    col2.metric("전체 재고 수량", total_items)
-    col3.metric("재고 부족 상품", low_stock)
+# 별 배경
+stars = []
+for _ in range(100):
+    stars.append([
+        random.randint(0, WIDTH),
+        random.randint(0, HEIGHT),
+        random.randint(1, 4)
+    ])
 
-    st.dataframe(inventory, use_container_width=True)
+# 점수
+score = 0
+wave = 1
 
-    st.subheader("⚠️ 재고 부족 상품")
-    low_stock_df = inventory[inventory["재고"] <= 5]
+# 폭발 효과
+explosions = []
 
-    if len(low_stock_df) > 0:
-        st.warning("재고가 부족한 상품이 있습니다!")
-        st.dataframe(low_stock_df, use_container_width=True)
-    else:
-        st.success("모든 상품 재고가 충분합니다.")
+# 게임 상태
+running = True
+game_over = False
 
-# 상품 추가
-elif menu == "상품 추가":
-    st.subheader("➕ 새 상품 추가")
+# 적 생성
+class Enemy:
+    def __init__(self):
+        self.x = random.randint(50, WIDTH - 50)
+        self.y = -50
+        self.size = random.randint(35, 60)
+        self.speed = enemy_speed + random.random() * 2
+        self.hp = self.size // 10
 
-    with st.form("add_product"):
-        product_name = st.text_input("상품명")
-        product_price = st.number_input("가격", min_value=0, step=100)
-        product_stock = st.number_input("초기 재고", min_value=0, step=1)
+    def move(self):
+        self.y += self.speed
 
-        submit = st.form_submit_button("상품 추가")
+    def draw(self):
+        pygame.draw.circle(screen, RED, (int(self.x), int(self.y)), self.size // 2)
+        pygame.draw.circle(screen, YELLOW, (int(self.x), int(self.y)), self.size // 4)
 
-        if submit:
-            if product_name:
-                new_row = pd.DataFrame([
-                    [product_name, product_price, product_stock]
-                ], columns=["상품명", "가격", "재고"])
+# 폭발 클래스
+class Explosion:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.radius = 5
+        self.life = 20
 
-                st.session_state.inventory = pd.concat(
-                    [st.session_state.inventory, new_row],
-                    ignore_index=True
-                )
+    def update(self):
+        self.radius += 3
+        self.life -= 1
 
-                st.success(f"'{product_name}' 상품이 추가되었습니다!")
-            else:
-                st.error("상품명을 입력해주세요.")
+    def draw(self):
+        pygame.draw.circle(screen, YELLOW, (self.x, self.y), self.radius, 3)
 
-# 판매 처리
-elif menu == "판매 처리":
-    st.subheader("🛒 판매 처리")
+# 플레이어 그리기
 
-    product_list = inventory["상품명"].tolist()
+def draw_player(x, y):
+    pygame.draw.polygon(screen, BLUE, [
+        (x, y),
+        (x - 20, y + 50),
+        (x + 20, y + 50)
+    ])
 
-    selected_product = st.selectbox("판매 상품 선택", product_list)
+    pygame.draw.rect(screen, WHITE, (x - 5, y + 10, 10, 20))
 
-    selected_row = inventory[inventory["상품명"] == selected_product].iloc[0]
+# 거리 계산
 
-    st.info(
-        f"현재 재고: {selected_row['재고']}개 | 가격: {selected_row['가격']}원"
-    )
+def distance(x1, y1, x2, y2):
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
-    sell_quantity = st.number_input(
-        "판매 수량",
-        min_value=1,
-        max_value=int(selected_row['재고']) if selected_row['재고'] > 0 else 1,
-        step=1
-    )
+# 메인 루프
+while running:
+    clock.tick(FPS)
 
-    if st.button("판매 완료"):
-        if selected_row['재고'] >= sell_quantity:
-            idx = inventory[inventory["상품명"] == selected_product].index[0]
-            st.session_state.inventory.at[idx, "재고"] -= sell_quantity
+    # 배경
+    screen.fill(BLACK)
 
-            total_price = selected_row['가격'] * sell_quantity
+    # 별 애니메이션
+    for star in stars:
+        pygame.draw.circle(screen, WHITE, (star[0], star[1]), star[2])
+        star[1] += star[2]
 
-            st.success(
-                f"{selected_product} {sell_quantity}개 판매 완료!\n총 금액: {total_price:,}원"
-            )
-        else:
-            st.error("재고가 부족합니다!")
+        if star[1] > HEIGHT:
+            star[0] = random.randint(0, WIDTH)
+            star[1] = 0
 
-# 재고 수정
-elif menu == "재고 수정":
-    st.subheader("✏️ 재고 수정")
+    # 이벤트
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and not game_over:
+                bullets.append([player_x, player_y])
+
+            if event.key == pygame.K_r and game_over:
+                # 게임 리셋
+                player_hp = 100
+                score = 0
+                wave = 1
+                enemy_speed = 3
+                enemies.clear()
+                bullets.clear()
+                explosions.clear()
+                game_over = False
+
+    keys = pygame.key.get_pressed()
+
+    if not game_over:
+        # 플레이어 이동
+        if keys[pygame.K_LEFT] and player_x > 30:
+            player_x -= player_speed
+
+        if keys[pygame.K_RIGHT] and player_x < WIDTH - 30:
+            player_x += player_speed
+
+        if keys[pygame.K_UP] and player_y > 50:
+            player_y -= player_speed
+
+        if keys[pygame.K_DOWN] and player_y < HEIGHT - 50:
+            player_y += player_speed
+
+        # 적 생성
+        spawn_timer += 1
+
+        if spawn_timer > max(20, 60 - wave * 2):
+            enemies.append(Enemy())
+            spawn_timer = 0
+
+        # 총알 이동
+        for bullet in bullets[:]:
+            bullet[1] -= bullet_speed
+
+            pygame.draw.rect(screen, GREEN, (bullet[0], bullet[1], 5, 15))
+
+            if bullet[1] < 0:
+                bullets.remove(bullet)
+
+        # 적 이동
+        for enemy in enemies[:]:
+            enemy.move()
+            enemy.draw()
+
+            # 플레이어 충돌
+            if distance(player_x, player_y, enemy.x, enemy.y) < enemy.size:
+                player_hp -= 20
+                explosions.append(Explosion(int(enemy.x), int(enemy.y)))
+                enemies.remove(enemy)
+
+                if player_hp <= 0:
+                    game_over = True
+
+            # 화면 밖 제거
+            elif enemy.y > HEIGHT + 50:
+                enemies.remove(enemy)
+
+            # 총알 충돌
+            for bullet in bullets[:]:
+                if distance(bullet[0], bullet[1], enemy.x, enemy.y) < enemy.size // 2:
+                    enemy.hp -= 1
+
+                    if bullet in bullets:
+                        bullets.remove(bullet)
+
+                    if enemy.hp <= 0:
+                        explosions.append(Explosion(int(enemy.x), int(enemy.y)))
+
+                        if enemy in enemies:
+                            enemies.remove(enemy)
+
+                        score += 10
+
+                        if score % 100 == 0:
+                            wave += 1
+                            enemy_speed += 0.5
+
+        # 폭발 업데이트
+        for explosion in exp
