@@ -22,15 +22,9 @@ GREEN = (0, 255, 120)
 PURPLE = (180, 0, 255)
 
 # 폰트
-# 폰트 (오류 방지용 기본 폰트 사용)
-try:
-    font = pygame.font.SysFont("malgungothic", 32)
-    big_font = pygame.font.SysFont("malgungothic", 64)
-    small_font = pygame.font.SysFont("malgungothic", 22)
-except:
-    font = pygame.font.Font(None, 32)
-    big_font = pygame.font.Font(None, 64)
-    small_font = pygame.font.Font(None, 22)
+font = pygame.font.SysFont("arial", 32)
+big_font = pygame.font.SysFont("arial", 64)
+small_font = pygame.font.SysFont("arial", 22)
 
 # 플레이어
 player_size = 50
