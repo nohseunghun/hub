@@ -1,118 +1,121 @@
 import streamlit as st
+import pandas as pd
 from datetime import datetime
 
 st.set_page_config(
-    page_title="연애 코칭 앱",
-    page_icon="💌",
-    layout="centered"
+    page_title="오성고 매점 재고 관리",
+    page_icon="🏪",
+    layout="wide"
 )
 
-# 스타일
-st.markdown(
-    """
-    <style>
-    .main {
-        background-color: #fff5f7;
-    }
-    .title {
-        text-align: center;
-        color: #ff4b6e;
-        font-size: 42px;
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
-    .subtitle {
-        text-align: center;
-        color: #666;
-        font-size: 18px;
-        margin-bottom: 30px;
-    }
-    .tip-box {
-        background-color: white;
-        padding: 20px;
-        border-radius: 15px;
-        border-left: 5px solid #ff4b6e;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# 초기 데이터
+if 'inventory' not in st.session_state:
+    st.session_state.inventory = pd.DataFrame([
+        ["삼각김밥", 1200, 15],
+        ["컵라면", 1800, 10],
+        ["콜라", 2000, 20],
+        ["초코우유", 1500, 8],
+        ["과자", 1700, 12]
+    ], columns=["상품명", "가격", "재고"])
 
 # 제목
-st.markdown('<div class="title">💌 AI 연애 코칭 앱</div>', unsafe_allow_html=True)
-st.markdown(
-    '<div class="subtitle">상황에 맞는 연애 조언과 대화 추천을 받아보세요!</div>',
-    unsafe_allow_html=True
-)
+st.title("🏪 오성고 매점 재고 관리 앱")
+st.markdown("학생회/매점용 실시간 재고 관리 시스템")
 
 # 사이드바
-st.sidebar.header("⚙️ 사용자 정보")
-name = st.sidebar.text_input("이름", "사용자")
-age = st.sidebar.slider("나이", 18, 50, 25)
-relationship = st.sidebar.selectbox(
-    "현재 상태",
-    ["썸", "연애 중", "짝사랑", "이별 후", "소개팅 준비"]
+st.sidebar.header("📋 메뉴")
+menu = st.sidebar.radio(
+    "기능 선택",
+    ["재고 현황", "상품 추가", "판매 처리", "재고 수정", "통계"]
 )
 
-# 메인 기능
-st.header("📍 현재 상황 입력")
-user_input = st.text_area(
-    "연애 고민이나 상황을 자세히 적어주세요",
-    placeholder="예: 좋아하는 사람이 있는데 먼저 연락해도 될지 고민이에요...",
-    height=180
-)
+inventory = st.session_state.inventory
 
-# 감정 선택
-emotion = st.selectbox(
-    "현재 감정",
-    ["설렘", "불안", "긴장", "행복", "우울", "혼란스러움"]
-)
+# 재고 현황
+if menu == "재고 현황":
+    st.subheader("📦 현재 재고 현황")
 
-# 연애 조언 함수
-def generate_coaching(text, relation, feeling):
-    text = text.lower()
+    total_items = inventory["재고"].sum()
+    total_products = len(inventory)
+    low_stock = len(inventory[inventory["재고"] <= 5])
 
-    if "연락" in text:
-        return "상대에게 부담되지 않게 가볍고 자연스럽게 연락해보세요. 짧은 안부나 공통 관심사로 시작하는 것이 좋아요. 😊"
+    col1, col2, col3 = st.columns(3)
 
-    elif "고백" in text:
-        return "고백은 타이밍이 중요합니다. 상대와 충분한 교감이 쌓였다면 솔직한 마음을 전해보세요."
+    col1.metric("총 상품 종류", total_products)
+    col2.metric("전체 재고 수량", total_items)
+    col3.metric("재고 부족 상품", low_stock)
 
-    elif "이별" in text or relation == "이별 후":
-        return "지금은 감정을 억누르기보다 충분히 정리하는 시간이 필요합니다. 스스로를 돌보는 것이 가장 중요해요. 💙"
+    st.dataframe(inventory, use_container_width=True)
 
-    elif relation == "썸":
-        return "썸 단계에서는 상대를 알아가는 과정이 중요합니다. 너무 조급해하지 말고 편안한 분위기를 만들어보세요."
+    st.subheader("⚠️ 재고 부족 상품")
+    low_stock_df = inventory[inventory["재고"] <= 5]
 
-    elif relation == "소개팅 준비":
-        return "소개팅에서는 자연스러운 미소와 경청이 가장 큰 매력입니다. 상대의 이야기에 공감해보세요."
-
+    if len(low_stock_df) > 0:
+        st.warning("재고가 부족한 상품이 있습니다!")
+        st.dataframe(low_stock_df, use_container_width=True)
     else:
-        return "연애에서는 솔직한 대화와 상대에 대한 배려가 가장 중요합니다. 자신의 감정도 소중히 생각하세요. ✨"
+        st.success("모든 상품 재고가 충분합니다.")
 
-# 추천 멘트 함수
-def recommend_message(relation):
-    messages = {
-        "썸": "오늘 뭐 했어? 갑자기 네 생각나서 연락해봤어 😊",
-        "연애 중": "오늘도 고생했어 ❤️ 맛있는 거 먹고 푹 쉬어!",
-        "짝사랑": "너랑 이야기하면 시간 가는 줄 모르겠어 😄",
-        "이별 후": "지금은 나 자신을 더 아껴주고 성장하는 시간이야.",
-        "소개팅 준비": "오늘 만나서 즐거웠어요! 다음에 또 이야기하고 싶네요 😊"
-    }
-    return messages.get(relation, "좋은 하루 보내 😊")
+# 상품 추가
+elif menu == "상품 추가":
+    st.subheader("➕ 새 상품 추가")
 
-# 버튼
-if st.button("💡 연애 코칭 받기"):
-    if user_input.strip() == "":
-        st.warning("연애 고민을 입력해주세요!")
-    else:
-        advice = generate_coaching(user_input, relationship, emotion)
-        message = recommend_message(relationship)
+    with st.form("add_product"):
+        product_name = st.text_input("상품명")
+        product_price = st.number_input("가격", min_value=0, step=100)
+        product_stock = st.number_input("초기 재고", min_value=0, step=1)
 
-        st.success(f"{name}님을 위한 연애 코칭 결과입니다!")
+        submit = st.form_submit_button("상품 추가")
 
-        st.markdown("### ❤️ AI 연애 조언")
-        st.markdown(f'<div class="tip-box">{advice}</div>', unsafe_allow_html=True)
+        if submit:
+            if product_name:
+                new_row = pd.DataFrame([
+                    [product_name, product_price, product_stock]
+                ], columns=["상품명", "가격", "재고"])
 
-        st.markdown("### 💬 추천 대화 멘트")
+                st.session_state.inventory = pd.concat(
+                    [st.session_state.inventory, new_row],
+                    ignore_index=True
+                )
+
+                st.success(f"'{product_name}' 상품이 추가되었습니다!")
+            else:
+                st.error("상품명을 입력해주세요.")
+
+# 판매 처리
+elif menu == "판매 처리":
+    st.subheader("🛒 판매 처리")
+
+    product_list = inventory["상품명"].tolist()
+
+    selected_product = st.selectbox("판매 상품 선택", product_list)
+
+    selected_row = inventory[inventory["상품명"] == selected_product].iloc[0]
+
+    st.info(
+        f"현재 재고: {selected_row['재고']}개 | 가격: {selected_row['가격']}원"
+    )
+
+    sell_quantity = st.number_input(
+        "판매 수량",
+        min_value=1,
+        max_value=int(selected_row['재고']) if selected_row['재고'] > 0 else 1,
+        step=1
+    )
+
+    if st.button("판매 완료"):
+        if selected_row['재고'] >= sell_quantity:
+            idx = inventory[inventory["상품명"] == selected_product].index[0]
+            st.session_state.inventory.at[idx, "재고"] -= sell_quantity
+
+            total_price = selected_row['가격'] * sell_quantity
+
+            st.success(
+                f"{selected_product} {sell_quantity}개 판매 완료!\n총 금액: {total_price:,}원"
+            )
+        else:
+            st.error("재고가 부족합니다!")
+
+# 재고 수정
+elif menu == "재고 수정":
+    st.subheader("✏️ 재고 수정")
