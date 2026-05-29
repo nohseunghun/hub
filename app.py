@@ -22,9 +22,15 @@ GREEN = (0, 255, 120)
 PURPLE = (180, 0, 255)
 
 # 폰트
-font = pygame.font.SysFont("arial", 32)
-big_font = pygame.font.SysFont("arial", 64)
-small_font = pygame.font.SysFont("arial", 22)
+# 폰트 (오류 방지용 기본 폰트 사용)
+try:
+    font = pygame.font.SysFont("malgungothic", 32)
+    big_font = pygame.font.SysFont("malgungothic", 64)
+    small_font = pygame.font.SysFont("malgungothic", 22)
+except:
+    font = pygame.font.Font(None, 32)
+    big_font = pygame.font.Font(None, 64)
+    small_font = pygame.font.Font(None, 22)
 
 # 플레이어
 player_size = 50
@@ -216,4 +222,45 @@ while running:
                             enemy_speed += 0.5
 
         # 폭발 업데이트
-        for explosion in exp
+        for explosion in explosions[:]:
+            explosion.update()
+            explosion.draw()
+
+            if explosion.life <= 0:
+                explosions.remove(explosion)
+
+        # 플레이어
+        draw_player(player_x, player_y)
+
+        # UI
+        hp_text = font.render(f"HP: {player_hp}", True, GREEN)
+        score_text = font.render(f"SCORE: {score}", True, WHITE)
+        wave_text = font.render(f"WAVE: {wave}", True, PURPLE)
+
+        screen.blit(hp_text, (20, 20))
+        screen.blit(score_text, (20, 60))
+        screen.blit(wave_text, (20, 100))
+
+        control_text = small_font.render(
+            "이동: 방향키 | 공격: SPACE",
+            True,
+            WHITE
+        )
+        screen.blit(control_text, (WIDTH - 300, 20))
+
+    else:
+        over_text = big_font.render("GAME OVER", True, RED)
+        score_text = font.render(f"FINAL SCORE: {score}", True, WHITE)
+        retry_text = small_font.render(
+            "R 키를 눌러 다시 시작",
+            True,
+            GREEN
+        )
+
+        screen.blit(over_text, (WIDTH // 2 - 180, HEIGHT // 2 - 100))
+        screen.blit(score_text, (WIDTH // 2 - 120, HEIGHT // 2))
+        screen.blit(retry_text, (WIDTH // 2 - 110, HEIGHT // 2 + 70))
+
+    pygame.display.update()
+
+pygame.quit()
